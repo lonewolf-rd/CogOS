@@ -1,0 +1,148 @@
+services:
+  master_agent:
+    build:
+      context: .
+      dockerfile: src/master_agent/Dockerfile
+    image: cognitive_ai_research/master_agent_dev:v1.0.0
+    container_name: master_agent_dev
+    hostname: master_agent
+    ports:
+      - "8001:8001"
+    command: >
+      uvicorn controller.agent_server:app --host 0.0.0.0 --port 8001 --reload
+    working_dir: /app
+    networks:
+      - cogos_network
+    volumes:
+      - ./src/master_agent:/app
+    depends_on:
+      ollama:
+        condition: service_healthy
+      mlflow_ui:
+        condition: service_started
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_started
+
+
+  vectorstore:
+    build:
+      context: .
+      dockerfile: src/vectorstore/Dockerfile
+    image: cognitive_ai_research/vectorstore_dev:v1.0.0
+
+  ollama:
+    build:
+      context: .
+      dockerfile: source/ollama_backend/Dockerfile
+    image: cognitive_ai_research/ollama_dev:v1.0.0
+    container_name: ollama_dev
+    hostname: ollama
+    env_file:
+      - .env
+    environment:
+      - OLLAMA_HOST=${OLLAMA_HOST}
+      - OLLAMA_KV_CACHE_TYPE=${OLLAMA_KV_CACHE_TYPE}
+      - OLLAMA_CONTEXT_LENGTH=${OLLAMA_CONTEXT_LENGTH}
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/version" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    ports:
+      - "11434:11434"
+    networks:
+      - cogos_network
+    volumes:
+      - ollama_models:/root/.ollama/models
+
+  mlflow_ui:
+    image: ghcr.io/mlflow/mlflow:v3.5.0
+    container_name: mlflow_dev
+    hostname: mlflow_ui
+    ports:
+      - "5000:5000"
+    environment:
+      - MLFLOW_TRACKING_URI=sqlite:///mlflow.db
+    command: >
+      bash -c "
+        mkdir -p /src/mlflow/artifacts &&
+        chown -R 1000:1000 /src/mlflow &&
+        mlflow server
+          --backend-store-uri sqlite:///mlflow.db
+          --default-artifact-root /src/mlflow/artifacts
+          --host 0.0.0.0
+          --port 5000
+      "
+    volumes:
+      - mlflow_data:/src/mlflow
+    working_dir: /src/mlflow
+    user: "1000:1000"
+    networks:
+      - cogos_network
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: redis_dev
+    hostname: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - cogos_network
+    command: [ "redis-server", "--save", "60", "1", "--loglevel", "warning" ]
+
+  zookeeper:
+    image: bitnami/zookeeper:3.9
+    container_name: zookeeper_dev
+    hostname: zookeeper
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/bitnami/zookeeper
+    networks:
+      - cogos_network
+
+  kafka:
+    image: bitnami/kafka:3.7
+    container_name: kafka_dev
+    hostname: kafka
+    depends_on:
+      - zookeeper
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka_data:/bitnami/kafka
+    networks:
+      - cogos_network
+
+networks:
+  cogos_network:
+    driver: bridge
+
+volumes:
+  ollama_models:
+  mlflow_data:
+  redis_data:
+  kafka_data:
+  zookeeper_data:
