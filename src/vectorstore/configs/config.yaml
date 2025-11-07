@@ -1,0 +1,6 @@
+include:
+  - celery_configs.yaml
+  - kafka_configs.yaml
+  - mlflow_configs.yaml
+  - ollama_configs.yaml
+  - system_prompts.yaml
