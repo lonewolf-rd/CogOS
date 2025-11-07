@@ -1,0 +1,27 @@
+services:
+  ollama:
+    build:
+      context: .
+      dockerfile: source/ollama/Dockerfile_ollama
+    image: terranexusco-deuschapp/ollama_prod:v1.0.0
+    container_name: ollama_prod
+    hostname: ollama
+    env_file:
+      - .env
+    environment:
+      - OLLAMA_HOST=${OLLAMA_HOST}
+      - OLLAMA_KV_CACHE_TYPE=${OLLAMA_KV_CACHE_TYPE}
+      - OLLAMA_CONTEXT_LENGTH=${OLLAMA_CONTEXT_LENGTH}
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/version" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+    ports:
+      - "11434:11434"
+    networks:
+      - deuschapp_network
+    volumes:
+      - ollama_models:/root/.ollama/models

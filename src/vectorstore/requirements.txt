@@ -1,0 +1,16 @@
+celery==5.5.3
+kafka-python==2.2.15
+redis==7.0.1
+faiss-cpu==1.12.0
+
+langchain==1.0.3
+langchain-core==1.0.3
+langchain-ollama==1.0.0
+
+python-multipart==0.0.9
+python-dotenv==1.0.1
+python-box==7.3.2
+pydantic==2.11.7
+PyYAML==6.0.2
+
+mlflow==3.5.1

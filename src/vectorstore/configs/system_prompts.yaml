@@ -1,0 +1,14 @@
+longterm_memory_summarizer:
+  sys_prompt: "
+  
+  "
+
+memory_entity_extractor:
+  sys_prompt: "
+  
+  "
+
+memory_agent:
+  sys_prompt: "
+  
+  "

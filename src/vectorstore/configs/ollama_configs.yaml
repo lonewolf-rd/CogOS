@@ -1,0 +1,5 @@
+ollama:
+  url: "http://ollama:11434"
+  model_name: "gemma3:4b-it-q4_K_M"
+  temp: 1e-5
+  maxct: 4096

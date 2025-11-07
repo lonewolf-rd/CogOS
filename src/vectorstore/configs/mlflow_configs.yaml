@@ -1,0 +1,2 @@
+mlflow:
+  tracking_uri: "http://mlflow_ui:5000"
