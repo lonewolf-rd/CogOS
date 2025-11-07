@@ -8,7 +8,7 @@ memory_entity_extractor:
   
   "
 
-memory_agent:
+memory_manager:
   sys_prompt: "
   
   "

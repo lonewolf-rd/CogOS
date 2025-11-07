@@ -1,28 +1,26 @@
 from langchain_community.docstore.in_memory import InMemoryDocstore
-from source.backend.utils.config_loader import ConfigLoader
+from src.vectorstore.utils.config_manager import ConfigManager
 from langchain_ollama.embeddings import OllamaEmbeddings
 from langchain_community.vectorstores import FAISS
-from source.backend.utils.logger import AppLogger
+from src.vectorstore.utils.logger import AppLogger
 from langchain_core.documents import Document
-from vectorstore_helper import IndexFlatL2
+from faiss import IndexFlatL2
 from pathlib import Path
 from typing import Union
-from box import Box
 import os.path
 
 
-class FaissVS:
+class VSHelper:
 
     def __init__(self):
         self.vectorstore: Union[FAISS, None] = None
+        self.vectorstore_path: str = f"{Path(__file__).parent.parent}/faiss"
 
-        self.vectorstore_path = f"{Path(__file__).parent.parent}/faiss"
-        self.config_loader = ConfigLoader()
         self.logger = AppLogger()
-        self.secret_loader = Box(self.config_loader.load_config("secret_configs"))
+        self.configs = ConfigManager().cfg
         self.embedding_model = OllamaEmbeddings(
-            model=self.secret_loader.ollama.embedding_model,
-            base_url=self.secret_loader.ollama.url
+            model=self.configs.ollama_configs.ollama.model_name,
+            base_url=self.configs.ollama_configs.ollama.base_url
         )
         self._init_vs()
 
@@ -45,14 +43,5 @@ class FaissVS:
                 embeddings=self.embedding_model,
                 allow_dangerous_deserialization=True
             )
-            self.logger.info(f"[FaissVS](_init_vs) Vectorstore has been loaded sucessfully...")
+            self.logger.info(f"[FaissVS](_init_vs) Vectorstore has been loaded successfully...")
             pass
-
-    async def _update_tool_memory(
-            self,
-            tool_name: str,
-            update_topic: str,
-            content: str
-    ) -> None:
-        index_cod = Document(page_content=content)
-        await self.vectorstore.aadd_documents()
